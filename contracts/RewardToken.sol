@@ -7,7 +7,12 @@ import "./IERC20.sol";
 import "./Ownable.sol";
 import "./IERC20Metadata.sol";
 
-contract SpoonToken is ERC20("Spoon Token","Spoon"),IERC20Metadata,Ownable {
+/**
+ * @title Reward Token
+ * @author 
+ * @notice this Token used by stake reward,when Stake another token,while earn the rewardToken
+ */
+contract RewardToken is ERC20("Reward Token","Reward"),IERC20Metadata,Ownable {
 
 
      function name() external view returns (string memory) {
