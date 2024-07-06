@@ -13,6 +13,26 @@ contract MaxSale is Admin {
     // 指明这个销售合约归属于哪个admin
     IAdmin public admin;
     IMaxStake public stakeContract;
+    // Sale
+    Sale sale;
+    // // Registration
+    Registration public registration;
+    // Number of users participated in the sale
+    uint256 public numberOfParticipants;
+    // Mapping user to his participation
+    mapping(address => Participation) public userToParticipation;
+    // Mapping if user is registered or not
+    mapping(address => bool) public isRegistered;
+    // Mapping if user is participated or not
+    mapping(address => bool) public isParticiparted;
+    // Times when portions are getting unlocked
+    uint256[] public vestingPortionsUnlockTime;
+    //Percent of the participation user can withdraw
+    uint256[] public vestingPercentPerPortion;
+    //Precision for percent for portion vesting
+    uint256 public portionVestingPrecision;
+    // Max vesting time shift
+    uint256 public maxVestingTimeShift;
     
 
     // Define the sale struct
@@ -74,26 +94,6 @@ contract MaxSale is Admin {
         uint256 registrationTimeEnds;
         uint256 numberOfRegistrants;
     }
-    // Sale
-    Sale sale;
-    // Registration
-    Registration public registration;
-    // Number of users participated in the sale
-    uint256 public numberOfParticipants;
-    // Mapping user to his participation
-    mapping(address => Participation) public userToParticipation;
-    // Mapping if user is registered or not
-    mapping(address => bool) public isRegistered;
-    // Mapping if user is participated or not
-    mapping(address => bool) public isParticiparted;
-    // Times when portions are getting unlocked
-    uint256[] public vestingPortionsUnlockTime;
-    //Percent of the participation user can withdraw
-    uint256[] public vestingPercentPerPortion;
-    //Precision for percent for portion vesting
-    uint256 public portionVestingPrecision;
-    // Max vesting time shift
-    uint256 public maxVestingTimeShift;
 
     // Events
     event TokensSold(address user, uint256 amount);
@@ -117,6 +117,8 @@ contract MaxSale is Admin {
         require(_allocationStaking != address(0));
         admin = IAdmin(_admin);
         stakeContract = IMaxStake(_allocationStaking);
+        admins.push(_admin);
+        isAdmin[_admin]=true;
     }
 
     modifier onlySaleOwner() {
@@ -124,8 +126,46 @@ contract MaxSale is Admin {
         _;
     }
 
-    // set Vesting Params (maxVestingTimeShift, _percents, _maxVestingTimeShift)
-    // 设置归属参数
+    // modifier onlyAdmin override {
+    //     require(isAdmin[msg.sender], "Only admin can call.");
+    //     _;
+    // }
+
+    // // Admin function to set sale parameters
+    function setSaleParams(
+        address _token,
+        address _saleOwner,
+        uint256 _tokenPriceInETH,
+        uint256 _amountOfTokensToSell,
+        uint256 _saleEnd,
+        uint256 _tokenUnlockTime,
+        uint256 _portionVestingPrecision,
+        uint256 _maxParticipation
+    ) external onlyAdmin{
+        require(!sale.isCreated, "Sale is already created");
+        require(_saleOwner != address(0), "Sale owner address can not be 0");
+
+        require(_tokenPriceInETH > 0 && _amountOfTokensToSell > 0 && _saleEnd > block.timestamp && _tokenUnlockTime > block.timestamp && _maxParticipation > 0,"Invalid input");
+        require(_portionVestingPrecision >= 100, "portionVestingPrecision at least 100");
+
+        sale.token = IERC20(_token);
+        sale.isCreated = true;
+        sale.saleOwner = _saleOwner;
+        sale.tokenPriceInETH = _tokenPriceInETH;
+        sale.tokensUnlockTime = _tokenUnlockTime;
+        sale.maxParticipation = _maxParticipation;
+        sale.amountOfTokensToSell = _amountOfTokensToSell;
+        sale.saleEnd = _saleEnd;
+
+        // set portion vesting precision
+        portionVestingPrecision = _portionVestingPrecision;
+
+        // Emit event
+        emit SaleCreated(sale.saleOwner,sale.tokenPriceInETH,sale.amountOfTokensToSell,sale.saleEnd);
+    }
+
+    // // set Vesting Params (maxVestingTimeShift, _percents, _maxVestingTimeShift)
+    // // 设置归属参数
     function setVestingParams(
         uint256[] memory _unlockingTimes,
         uint256[] memory _percents,
@@ -154,8 +194,8 @@ contract MaxSale is Admin {
         require(sum == portionVestingPrecision, "Percent distribution issue");
     }
 
-    // set ShiftTime for vestingPortionsUnlockTimes. It just can set once
-    // 动态调整代表的释放时间, 并且确保了只能被调整一次
+    // // set ShiftTime for vestingPortionsUnlockTimes. It just can set once
+    // // 动态调整代表的释放时间, 并且确保了只能被调整一次
     function shiftVestingUnlockingTimes(uint256 timeToShift)
         external
         onlyAdmin
@@ -172,42 +212,9 @@ contract MaxSale is Admin {
         }
     }
 
-    // Admin function to set sale parameters
-    function setSaleParams(
-        address _token,
-        address _saleOwner,
-        uint256 _tokenPriceInETH,
-        uint256 _amountOfTokensToSell,
-        uint256 _saleEnd,
-        uint256 _tokenUnlockTime,
-        uint256 _portionVestingPrecision,
-        uint256 _maxParticipation
-    ) external onlyAdmin {
-        require(!sale.isCreated, "Sale is already created");
-        require(_saleOwner != address(0), "Sale owner address can not be 0");
-
-        require(_tokenPriceInETH > 0 && _amountOfTokensToSell > 0 && _saleEnd > block.timestamp && _tokenUnlockTime > block.timestamp && _maxParticipation > 0,"Invalid input");
-        require(_portionVestingPrecision >= 100, "portionVestingPrecision at least 100");
-
-        sale.token = IERC20(_token);
-        sale.isCreated = true;
-        sale.saleOwner = _saleOwner;
-        sale.tokenPriceInETH = _tokenPriceInETH;
-        sale.tokensUnlockTime = _tokenUnlockTime;
-        sale.maxParticipation = _maxParticipation;
-        sale.amountOfTokensToSell = _amountOfTokensToSell;
-        sale.saleEnd = _saleEnd;
-
-        // set portion vesting precision
-        portionVestingPrecision = _portionVestingPrecision;
-
-        // Emit event
-        emit SaleCreated(sale.saleOwner,sale.tokenPriceInETH,sale.amountOfTokensToSell,sale.saleEnd);
-    }
-
-    //  only can be set when initial contract creation has passed but having no token at that moment
-    //  只能在初始化已经结束，同时因为当时还没有合适的token下才能被设置 
-    function setSaleToken(address _saleToken) external onlyAdmin {
+    // //  only can be set when initial contract creation has passed but having no token at that moment
+    // //  只能在初始化已经结束，同时因为当时还没有合适的token下才能被设置 
+    function setSaleToken(address _saleToken) external onlyAdmin{
         // TODO 增加校验
         sale.token = IERC20(_saleToken);
     }
@@ -248,7 +255,7 @@ contract MaxSale is Admin {
     // 注册销售人员
     function registerForSale(bytes memory signature, uint256 _pid) external {
         require(block.timestamp >= registration.registrationTimeStarts && block.timestamp <= registration.registrationTimeEnds, "registration gate is closed");
-        require(checkRegistrationSignation(signature, msg.sender),"Invalid signature");
+        // require(checkRegistrationSignation(signature, msg.sender),"Invalid signature");
 
         require(!isRegistered[msg.sender], "User can't be register twice");
         isRegistered[msg.sender] = true;

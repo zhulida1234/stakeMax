@@ -1,13 +1,11 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "./IAdmin.sol";
 import "./Admin.sol";
 import "./MaxSale.sol";
 
 contract SalesFactory is Admin{
 
-    IAdmin public admin;
     address public stakingContractAddress;
     // through Factory Created sale, sale address mapping bool
     // 是否通过工厂创建的销售合约
@@ -15,9 +13,6 @@ contract SalesFactory is Admin{
     // owner address mapping to sale address
     // 所有者和销售合约的地址映射
     mapping (address => address) public saleOwnerToSale;
-    // token address mapping to sale address
-    // 销售token和合约的地址映射
-    mapping (address => address) public tokenToSale;
     // all Sales Listing
     // 所有销售合约列表
     address [] public allSales;
@@ -53,6 +48,6 @@ contract SalesFactory is Admin{
         emit SaleDeployed(address(sale));
     }
 
-    
+
 
 }
