@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.20;
 
-import "./IERC20.sol";
-import "./ERC20.sol";
-import "./IMaxStake.sol";
+import "./interface/IERC20.sol";
+import "./token/ERC20.sol";
+import "./interface/IMaxStake.sol";
 
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";

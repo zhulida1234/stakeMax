@@ -1,11 +1,11 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "./IAdmin.sol";
+import "./interface/IAdmin.sol";
 import "./Admin.sol";
-import "./IERC20.sol";
-import "./IMaxStake.sol";
-import "./IERC20Metadata.sol";
+import "./interface/IERC20.sol";
+import "./interface/IMaxStake.sol";
+import "./interface/IERC20Metadata.sol";
 
 contract MaxSale is Admin {
 

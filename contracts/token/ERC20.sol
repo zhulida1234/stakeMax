@@ -2,11 +2,11 @@
 // OpenZeppelin Contracts (last updated v5.0.0) (token/ERC20/ERC20.sol)
 
 pragma solidity ^0.8.20;
-import "./IERC20.sol";
-import "./draft-IERC6093.sol";
-import "./Context.sol";
+import "../interface/IERC20.sol";
+import "../interface/draft-IERC6093.sol";
+import "../utils/Ownable.sol";
 
-contract ERC20 is IERC20,Context,IERC20Errors {
+contract ERC20 is IERC20,Ownable,IERC20Errors {
 
     // Token名称
     string public _name;

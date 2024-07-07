@@ -3,11 +3,10 @@
 pragma solidity ^0.8.20;
 
 import "./ERC20.sol";
-import "./IERC20.sol";
-import "./Ownable.sol";
-import "./IERC20Metadata.sol";
+import "../interface/IERC20.sol";
+import "../interface/IERC20Metadata.sol";
 
-contract CupToken is ERC20("Cup Token","Cup"),IERC20Metadata,Ownable {
+contract CupToken is ERC20("Cup Token","Cup"),IERC20Metadata {
 
      function name() external view returns (string memory) {
         return _name;

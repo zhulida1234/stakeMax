@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "./Admin.sol";
-import "./MaxSale.sol";
+import "../Admin.sol";
+import "../MaxSale.sol";
 
 contract SalesFactory is Admin{
 

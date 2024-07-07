@@ -3,16 +3,10 @@
 pragma solidity ^0.8.20;
 
 import "./ERC20.sol";
-import "./IERC20.sol";
-import "./Ownable.sol";
-import "./IERC20Metadata.sol";
+import "../interface/IERC20.sol";
+import "../interface/IERC20Metadata.sol";
 
-/**
- * @title Reward Token
- * @author 
- * @notice this Token used by stake reward,when Stake another token,while earn the rewardToken
- */
-contract RewardToken is ERC20("Reward Token","Reward"),IERC20Metadata,Ownable {
+contract SpoonToken is ERC20("Spoon Token","Spoon"),IERC20Metadata {
 
 
      function name() external view returns (string memory) {
