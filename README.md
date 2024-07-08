@@ -3,6 +3,8 @@ stakeMax 是一个集合了 发币，质押，swap，kyc认证，借贷，跨链
 
 UML类图
 ![alt text](image.png)
+流程图
+![alt text](image-1.png)
 
 各基本合约的介绍
 合约接口 
