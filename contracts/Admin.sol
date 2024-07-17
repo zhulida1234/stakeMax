@@ -32,7 +32,7 @@ contract Admin is IAdmin{
 
     // add another admin,It must admin can operator
     // 增加另外一个admin，只有admin的权限用户可以操作
-    function addAdmin(address _adminAddress) external onlyAdmin {
+    function addAdmin(address _adminAddress) public onlyAdmin {
         require(_adminAddress!=address(0),"Admin can't be the 0 address");
         require(!isAdmin[_adminAddress],"this address alread admin");
         admins.push(_adminAddress);

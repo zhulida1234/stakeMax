@@ -41,8 +41,7 @@ contract PoolPriceFeed is IPoolPriceFeed,Admin {
 
 
     constructor () {
-        admins.push(msg.sender);
-        isAdmin[msg.sender]=true;
+        addAdmin(msg.sender);
     }
 
      function setAdjustment(address _token, bool _isAdditive, uint256 _adjustmentBps) external onlyAdmin {
