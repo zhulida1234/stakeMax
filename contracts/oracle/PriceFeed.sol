@@ -10,18 +10,20 @@ contract PriceFeed is IPriceFeed {
 
     uint256 public decimals;
 
-    address public gov;
 
     mapping(uint256 => int256) public answers;
     mapping(address => bool) public isAdmin;
 
+    modifier onlyAdmin {
+        require(isAdmin[msg.sender],"PriceFeed: forbidden");
+        _;
+    }
+
     constructor() {
-        gov = msg.sender;
         isAdmin[msg.sender] = true;
     }
 
-    function setAdmin(address _account, bool _isAdmin) public {
-        require(msg.sender == gov, "PriceFeed: forbidden");
+    function setAdmin(address _account, bool _isAdmin) public onlyAdmin{
         isAdmin[_account] = _isAdmin;
     }
 
