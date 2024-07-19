@@ -32,16 +32,17 @@ contract PoolPriceFeed is IPoolPriceFeed,Admin {
     address btcBnb;
     address ethBnb;
 
-    mapping(address => uint256) adjustmentBasisPoints;
-    mapping(address => bool) isAdjustmentAdditive;
+    mapping(address => uint256) public adjustmentBasisPoints;
+    mapping(address => bool) public isAdjustmentAdditive;
     mapping(address => bool) strictStableTokens;
-    mapping(address => uint256) spreadBasisPoints;
+    mapping(address => uint256) public spreadBasisPoints;
     mapping(address => address) priceFeeds;
     mapping(address => uint256) priceDecimals;
 
 
     constructor () {
-        addAdmin(msg.sender);
+        admins.push(msg.sender);
+        isAdmin[msg.sender] = true;
     }
 
      function setAdjustment(address _token, bool _isAdditive, uint256 _adjustmentBps) external onlyAdmin {

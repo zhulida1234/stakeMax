@@ -273,6 +273,10 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     
     }
 
+    function setEndTimeStamp(uint256 _endTimeStamp) external onlyOwner{
+        endTimeStamp = _endTimeStamp;
+    }
+
     // setting interest
     // 设置借出利率 和 借入利率
     function setInterestRate(uint256 _lendingInterestRate,uint256 _borrowingInterestRate,uint256 _lendingRewardInterestRate,uint256 _borrowingRewardInterestRate) external onlyOwner{
@@ -430,25 +434,25 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
 
     // the use can depositLending the token to this contract. to earn the interest
     // 
-    function depositLend(uint256 _pid,uint256 _amount) external nonReentrant validateLend(_amount){
-        Pool storage pool = pools[_pid];
+    // function depositLend(uint256 _pid,uint256 _amount) external nonReentrant validateLend(_amount){
+    //     Pool storage pool = pools[_pid];
 
-        LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
-        // 如果之前已经有出借的记录,则先计算利息
-        if(landingInfo.landingAmount > 0){
-            uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
-            landingInfo.accumulateInterest +=landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
-        }
+    //     LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
+    //     // 如果之前已经有出借的记录,则先计算利息
+    //     if(landingInfo.landingAmount > 0){
+    //         uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
+    //         landingInfo.accumulateInterest +=landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
+    //     }
 
-        landingInfo.landingAmount += _amount;
-        landingInfo.landingLastTime = block.timestamp;
+    //     landingInfo.landingAmount += _amount;
+    //     landingInfo.landingLastTime = block.timestamp;
 
-        pool.lendingAmount += _amount; 
+    //     pool.lendingAmount += _amount; 
 
-        IERC20(pool.stTokenAddress).transferFrom(msg.sender,address(this),_amount);
-        // 发送事件
-        emit DepositLend(_pid,_amount);
-    }
+    //     IERC20(pool.stTokenAddress).transferFrom(msg.sender,address(this),_amount);
+    //     // 发送事件
+    //     emit DepositLend(_pid,_amount);
+    // }
 
     /**
      * 
@@ -459,250 +463,250 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
      * 更新借款信息的借款金额，操作时间
      * 考虑到，token的最终归属没有变,transferFrom这个方法不需要调用
      */
-    function withdrawLend(uint256 _pid,uint256 _amount) external nonReentrant withdrawUnPaused validateLend(_amount){
-        User storage user = userInfo[_pid][msg.sender];
-        require(user.stAmount >= _amount, "the balance less than amount");
+    // function withdrawLend(uint256 _pid,uint256 _amount) external nonReentrant withdrawUnPaused validateLend(_amount){
+    //     User storage user = userInfo[_pid][msg.sender];
+    //     require(user.stAmount >= _amount, "the balance less than amount");
 
-        Pool storage pool = pools[_pid];
-        updatePool(_pid);
-        // 先取出奖励池子里面的奖励，给到质押者
-        uint256 reward = pending(_pid, msg.sender);
-        user.finishedB2 += reward;
-        user.pendingB2 = 0;
-        ierc20B2.transfer(msg.sender,reward);
-        // 然后将 取出来的金额借给合约，开始计算利息
-        user.stAmount = user.stAmount - _amount;
-        pool.stTokenAmount -= _amount; 
+    //     Pool storage pool = pools[_pid];
+    //     updatePool(_pid);
+    //     // 先取出奖励池子里面的奖励，给到质押者
+    //     uint256 reward = pending(_pid, msg.sender);
+    //     user.finishedB2 += reward;
+    //     user.pendingB2 = 0;
+    //     ierc20B2.transfer(msg.sender,reward);
+    //     // 然后将 取出来的金额借给合约，开始计算利息
+    //     user.stAmount = user.stAmount - _amount;
+    //     pool.stTokenAmount -= _amount; 
 
-        LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
-        if(landingInfo.landingAmount > 0){
-            uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
-            landingInfo.accumulateInterest +=landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
-        }
+    //     LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
+    //     if(landingInfo.landingAmount > 0){
+    //         uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
+    //         landingInfo.accumulateInterest +=landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
+    //     }
 
-        landingInfo.landingAmount += _amount;
-        landingInfo.landingLastTime = block.timestamp;
+    //     landingInfo.landingAmount += _amount;
+    //     landingInfo.landingLastTime = block.timestamp;
 
-        pool.lendingAmount += _amount; 
-        // 发送事件
-        emit WithdrawLend(_pid,_amount);
-    }
+    //     pool.lendingAmount += _amount; 
+    //     // 发送事件
+    //     emit WithdrawLend(_pid,_amount);
+    // }
 
     /**
      * 借出奖励,获取奖励的利息
      * 逻辑大致和提取奖励逻辑差不多，最后同样是不调用transfer方法，只是将最终的数据进行调整
      * @param _pid 池id
      */
-    function claimLend(uint256 _pid) external nonReentrant claimUnPaused{
-        Pool storage pool = pools[_pid];
-        User storage user = userInfo[_pid][msg.sender];
+    // function claimLend(uint256 _pid) external nonReentrant claimUnPaused{
+    //     Pool storage pool = pools[_pid];
+    //     User storage user = userInfo[_pid][msg.sender];
 
-        uint256 reward = pending(_pid, msg.sender);
-        user.finishedB2 += reward;
-        user.pendingB2 = 0;
+    //     uint256 reward = pending(_pid, msg.sender);
+    //     user.finishedB2 += reward;
+    //     user.pendingB2 = 0;
 
-        LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
-        if(landingInfo.landingRewardAmount > 0){
-            uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
-            landingInfo.accumulateRewardInterest +=landingInfo.landingRewardAmount * timePeriod * lendingRewardInterestRate * 1e36/(365 * 24 * 3600);
-        }
+    //     LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
+    //     if(landingInfo.landingRewardAmount > 0){
+    //         uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
+    //         landingInfo.accumulateRewardInterest +=landingInfo.landingRewardAmount * timePeriod * lendingRewardInterestRate * 1e36/(365 * 24 * 3600);
+    //     }
 
-        landingInfo.landingRewardAmount += reward;
-        landingInfo.landingLastTime = block.timestamp;
-        pool.lendingRewardAmount += reward;
-        // 发送事件
-        emit ClaimLend(_pid);
-    }
+    //     landingInfo.landingRewardAmount += reward;
+    //     landingInfo.landingLastTime = block.timestamp;
+    //     pool.lendingRewardAmount += reward;
+    //     // 发送事件
+    //     emit ClaimLend(_pid);
+    // }
 
-    function depositBorrow(uint256 _pid,uint256 _amount) external nonReentrant validateBorrow(_amount){
-        Pool storage pool = pools[_pid];
+    // function depositBorrow(uint256 _pid,uint256 _amount) external nonReentrant validateBorrow(_amount){
+    //     Pool storage pool = pools[_pid];
 
-        uint256 canBorrowAmt = _getCanBorrowAmt(_pid);
-        BorrowingInfo storage borrowingInfo = borrowingValues[pool.stTokenAddress][msg.sender];
+    //     uint256 canBorrowAmt = _getCanBorrowAmt(_pid);
+    //     BorrowingInfo storage borrowingInfo = borrowingValues[pool.stTokenAddress][msg.sender];
 
-        require(canBorrowAmt-borrowingInfo.borrowingAmount > _amount,"the borrowAmt overflow");
-        require(pool.lendingAmount-pool.borrowingAmount > _amount, "total borrow amount must less than total lending");
+    //     require(canBorrowAmt-borrowingInfo.borrowingAmount > _amount,"the borrowAmt overflow");
+    //     require(pool.lendingAmount-pool.borrowingAmount > _amount, "total borrow amount must less than total lending");
 
-        // 如果之前已经有出借的记录,则先计算利息
-        if(borrowingInfo.borrowingAmount > 0){
-            uint256 timePeriod = block.timestamp - borrowingInfo.borrowLastTime;
-            borrowingInfo.accumulateInterest +=borrowingInfo.borrowingAmount * timePeriod * borrowingInterestRate * 1e36/(365 * 24 * 3600);
-        }
+    //     // 如果之前已经有出借的记录,则先计算利息
+    //     if(borrowingInfo.borrowingAmount > 0){
+    //         uint256 timePeriod = block.timestamp - borrowingInfo.borrowLastTime;
+    //         borrowingInfo.accumulateInterest +=borrowingInfo.borrowingAmount * timePeriod * borrowingInterestRate * 1e36/(365 * 24 * 3600);
+    //     }
 
-        borrowingInfo.borrowingAmount += _amount;
-        borrowingInfo.borrowLastTime = block.timestamp;
+    //     borrowingInfo.borrowingAmount += _amount;
+    //     borrowingInfo.borrowLastTime = block.timestamp;
 
-        pool.borrowingAmount += _amount; 
+    //     pool.borrowingAmount += _amount; 
 
-        IERC20(pool.stTokenAddress).transfer(msg.sender,_amount);
-        // 发送事件
-        emit DepositBorrow(_pid,_amount);
-    }
+    //     IERC20(pool.stTokenAddress).transfer(msg.sender,_amount);
+    //     // 发送事件
+    //     emit DepositBorrow(_pid,_amount);
+    // }
 
     /***
      * 如果之前已经有过了借款，提取本金后可以借款的金额 > 已借款金额
      * 则本次借款数量 可以借款的最大金额 - 已借款金额
      * 如果没有借款
      */
-    function withdrawBorrow(uint256 _pid,uint256 _amount) external nonReentrant withdrawUnPaused validateBorrow(_amount){
-        User storage user = userInfo[_pid][msg.sender];
-        require(user.stAmount >= _amount, "the balance less than amount");
-        uint256 canBorrowAmt=_getCanBorrowAmt(_pid);
-        Pool storage pool = pools[_pid];
-        BorrowingInfo storage borrowingInfo = borrowingValues[pool.stTokenAddress][msg.sender];
-        require(canBorrowAmt-borrowingInfo.borrowingAmount > _amount,"the borrow amount overflow than limit");
+    // function withdrawBorrow(uint256 _pid,uint256 _amount) external nonReentrant withdrawUnPaused validateBorrow(_amount){
+    //     User storage user = userInfo[_pid][msg.sender];
+    //     require(user.stAmount >= _amount, "the balance less than amount");
+    //     uint256 canBorrowAmt=_getCanBorrowAmt(_pid);
+    //     Pool storage pool = pools[_pid];
+    //     BorrowingInfo storage borrowingInfo = borrowingValues[pool.stTokenAddress][msg.sender];
+    //     require(canBorrowAmt-borrowingInfo.borrowingAmount > _amount,"the borrow amount overflow than limit");
         
-        updatePool(_pid);
-        // 先取出奖励池子里面的奖励，给到质押者
-        uint256 reward = pending(_pid, msg.sender);
-        user.finishedB2 += reward;
-        user.pendingB2 = 0;
-        ierc20B2.transfer(msg.sender,reward);
+    //     updatePool(_pid);
+    //     // 先取出奖励池子里面的奖励，给到质押者
+    //     uint256 reward = pending(_pid, msg.sender);
+    //     user.finishedB2 += reward;
+    //     user.pendingB2 = 0;
+    //     ierc20B2.transfer(msg.sender,reward);
 
-        user.stAmount = user.stAmount - _amount;
-        pool.stTokenAmount -= _amount; 
-        // 然后将 取出来的金额借给合约，开始计算利息
-        if(borrowingInfo.borrowingAmount > 0){
-            uint256 timePeriod = block.timestamp - borrowingInfo.borrowLastTime;
-            borrowingInfo.accumulateInterest +=borrowingInfo.borrowingAmount * timePeriod * borrowingInterestRate * 1e36/(365 * 24 * 3600);
-        }
-        uint256 reallyBorrowAmt = user.stAmount * collateralRate /100 - borrowingInfo.borrowingAmount;
-        borrowingInfo.borrowingAmount += reallyBorrowAmt;
-        borrowingInfo.borrowLastTime = block.timestamp;
+    //     user.stAmount = user.stAmount - _amount;
+    //     pool.stTokenAmount -= _amount; 
+    //     // 然后将 取出来的金额借给合约，开始计算利息
+    //     if(borrowingInfo.borrowingAmount > 0){
+    //         uint256 timePeriod = block.timestamp - borrowingInfo.borrowLastTime;
+    //         borrowingInfo.accumulateInterest +=borrowingInfo.borrowingAmount * timePeriod * borrowingInterestRate * 1e36/(365 * 24 * 3600);
+    //     }
+    //     uint256 reallyBorrowAmt = user.stAmount * collateralRate /100 - borrowingInfo.borrowingAmount;
+    //     borrowingInfo.borrowingAmount += reallyBorrowAmt;
+    //     borrowingInfo.borrowLastTime = block.timestamp;
 
-        pool.borrowingAmount += reallyBorrowAmt;
+    //     pool.borrowingAmount += reallyBorrowAmt;
         
-        uint256 reallySendAmt = _amount + reallyBorrowAmt;
-        IERC20(pool.stTokenAddress).transfer(msg.sender,reallySendAmt);
+    //     uint256 reallySendAmt = _amount + reallyBorrowAmt;
+    //     IERC20(pool.stTokenAddress).transfer(msg.sender,reallySendAmt);
 
-        emit WithdrawBorrow(_pid,_amount);
-    }
+    //     emit WithdrawBorrow(_pid,_amount);
+    // }
 
     /**
      * 
      */
-    function claimBorrow(uint256 _pid) external nonReentrant claimUnPaused {
-        require(address(interestToken) != address(0),"the interestToken may not init");
-        require(borrowingInterestRate > 0,"the lendingInterestRate may not init");
+    // function claimBorrow(uint256 _pid) external nonReentrant claimUnPaused {
+    //     require(address(interestToken) != address(0),"the interestToken may not init");
+    //     require(borrowingInterestRate > 0,"the lendingInterestRate may not init");
 
-        User storage user = userInfo[_pid][msg.sender];
+    //     User storage user = userInfo[_pid][msg.sender];
 
-        Pool storage pool = pools[_pid];
-        BorrowingInfo storage borrowingInfo = borrowingValues[pool.stTokenAddress][msg.sender];
-        uint256 reward = pending(_pid, msg.sender);
-        require(reward > mincollateral, "the reward must great than mincollateral");
-        if(borrowingInfo.borrowingAmount > 0){
-            uint256 timePeriod = block.timestamp - borrowingInfo.borrowLastTime;
-            borrowingInfo.accumulateInterest +=borrowingInfo.borrowingAmount * timePeriod * borrowingInterestRate * 1e36/(365 * 24 * 3600);
-        }
-
-        
-        user.finishedB2 += reward;
-        user.pendingB2 = 0;
-
-        uint256 canborrowAmt=_calculateRewardCollateral(reward);
-
-        borrowingInfo.borrowingAmount += canborrowAmt;
-        borrowingInfo.collateralReward += reward;
-        borrowingInfo.borrowLastTime = block.timestamp;
+    //     Pool storage pool = pools[_pid];
+    //     BorrowingInfo storage borrowingInfo = borrowingValues[pool.stTokenAddress][msg.sender];
+    //     uint256 reward = pending(_pid, msg.sender);
+    //     require(reward > mincollateral, "the reward must great than mincollateral");
+    //     if(borrowingInfo.borrowingAmount > 0){
+    //         uint256 timePeriod = block.timestamp - borrowingInfo.borrowLastTime;
+    //         borrowingInfo.accumulateInterest +=borrowingInfo.borrowingAmount * timePeriod * borrowingInterestRate * 1e36/(365 * 24 * 3600);
+    //     }
 
         
-        pool.borrowingRewardAmount += reward;
+    //     user.finishedB2 += reward;
+    //     user.pendingB2 = 0;
 
-        IERC20(pool.stTokenAddress).transfer(msg.sender,canborrowAmt);
+    //     uint256 canborrowAmt=_calculateRewardCollateral(reward);
 
-        emit ClaimBorrow(_pid);
-    }
-    /**
-     * 计算能够借款多少
-     */
-    function _getCanBorrowAmt(uint256 _pid) private view returns (uint256){
-        User storage user = userInfo[_pid][msg.sender];
-        uint256 totalCanBorrowAmt = user.stAmount * collateralRate /100;
+    //     borrowingInfo.borrowingAmount += canborrowAmt;
+    //     borrowingInfo.collateralReward += reward;
+    //     borrowingInfo.borrowLastTime = block.timestamp;
 
-        return totalCanBorrowAmt;
-    }
+        
+    //     pool.borrowingRewardAmount += reward;
 
-    /**
-     * 计算奖励能抵押多少的token,因为奖励token的数量较大，
-     * 因此计算的时候，要除以一个较大的数，这里为10的6次方
-     */
-    function _calculateRewardCollateral(uint256 _reward) private view returns (uint256){
-        uint256 collateralAmt = _reward * collateralRewardRate/1e6;
-        return collateralAmt;
-    }
+    //     IERC20(pool.stTokenAddress).transfer(msg.sender,canborrowAmt);
 
-    /**
-     * 偿还所有借到的token(包括通过抵押的奖励token借到的)，并支付指定的利息
-     * 需要将抵押的奖励token退回到自己的账户上
-     */
-    function redeem(uint256 _pid) external nonReentrant{
-        Pool storage pool = pools[_pid];
-        BorrowingInfo storage borrowingInfo = borrowingValues[pool.stTokenAddress][msg.sender];
-        // 先进行利息的计算
-        uint256 timePeriod = block.timestamp - borrowingInfo.borrowLastTime;
-        borrowingInfo.accumulateInterest +=borrowingInfo.borrowingAmount * timePeriod * borrowingInterestRate * 1e36/(365 * 24 * 3600);
+    //     emit ClaimBorrow(_pid);
+    // }
+    // /**
+    //  * 计算能够借款多少
+    //  */
+    // function _getCanBorrowAmt(uint256 _pid) private view returns (uint256){
+    //     User storage user = userInfo[_pid][msg.sender];
+    //     uint256 totalCanBorrowAmt = user.stAmount * collateralRate /100;
 
-        pool.borrowingAmount -= borrowingInfo.borrowingAmount;
+    //     return totalCanBorrowAmt;
+    // }
 
-        uint256 borrowAmt = borrowingInfo.borrowingAmount;
-        uint256 collateralReward = borrowingInfo.collateralReward;
-        uint256 accumulateInterest =  borrowingInfo.accumulateInterest;
+    // /**
+    //  * 计算奖励能抵押多少的token,因为奖励token的数量较大，
+    //  * 因此计算的时候，要除以一个较大的数，这里为10的6次方
+    //  */
+    // function _calculateRewardCollateral(uint256 _reward) private view returns (uint256){
+    //     uint256 collateralAmt = _reward * collateralRewardRate/1e6;
+    //     return collateralAmt;
+    // }
 
-        interestToken.transfer(address(this),borrowingInfo.accumulateInterest);
-        IERC20(pool.stTokenAddress).transfer(address(this),borrowingInfo.borrowingAmount);
-        // 将抵押的奖励token，转移到个人账户
-        ierc20B2.transfer(msg.sender,borrowingInfo.collateralReward);
-        pool.borrowingRewardAmount -= borrowingInfo.collateralReward;
+    // /**
+    //  * 偿还所有借到的token(包括通过抵押的奖励token借到的)，并支付指定的利息
+    //  * 需要将抵押的奖励token退回到自己的账户上
+    //  */
+    // function redeem(uint256 _pid) external nonReentrant{
+    //     Pool storage pool = pools[_pid];
+    //     BorrowingInfo storage borrowingInfo = borrowingValues[pool.stTokenAddress][msg.sender];
+    //     // 先进行利息的计算
+    //     uint256 timePeriod = block.timestamp - borrowingInfo.borrowLastTime;
+    //     borrowingInfo.accumulateInterest +=borrowingInfo.borrowingAmount * timePeriod * borrowingInterestRate * 1e36/(365 * 24 * 3600);
 
-        borrowingInfo.borrowingAmount = 0;
-        borrowingInfo.borrowLastTime = block.timestamp;
-        borrowingInfo.collateralReward = 0;
+    //     pool.borrowingAmount -= borrowingInfo.borrowingAmount;
 
-        emit Redeem(_pid,borrowAmt,collateralReward,accumulateInterest,msg.sender);
+    //     uint256 borrowAmt = borrowingInfo.borrowingAmount;
+    //     uint256 collateralReward = borrowingInfo.collateralReward;
+    //     uint256 accumulateInterest =  borrowingInfo.accumulateInterest;
 
-    }
+    //     interestToken.transfer(address(this),borrowingInfo.accumulateInterest);
+    //     IERC20(pool.stTokenAddress).transfer(address(this),borrowingInfo.borrowingAmount);
+    //     // 将抵押的奖励token，转移到个人账户
+    //     ierc20B2.transfer(msg.sender,borrowingInfo.collateralReward);
+    //     pool.borrowingRewardAmount -= borrowingInfo.collateralReward;
 
-    /**
-     * 结算，用于将用户借出去的token,还给用户,并同时计算利息以及
-     * 奖励的token数据
-     */
-    function settle(uint256 _pid) external nonReentrant {
-        require(block.timestamp > lockPeriod, "the time is locked");
-        Pool storage pool = pools[_pid];
-        LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
-        // 先进行利息计算
-        uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
-        landingInfo.accumulateInterest += landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
-        landingInfo.accumulateRewardInterest += landingInfo.landingRewardAmount * timePeriod * lendingRewardInterestRate * 1e36/(365 * 24 * 3600);
+    //     borrowingInfo.borrowingAmount = 0;
+    //     borrowingInfo.borrowLastTime = block.timestamp;
+    //     borrowingInfo.collateralReward = 0;
 
-        pool.lendingAmount -=landingInfo.landingAmount;
-        pool.lendingRewardAmount -=landingInfo.landingRewardAmount;
+    //     emit Redeem(_pid,borrowAmt,collateralReward,accumulateInterest,msg.sender);
 
-        uint256 landingAmount = landingInfo.landingAmount;
-        uint256 landingRewardAmount = landingInfo.landingRewardAmount;
+    // }
 
-        landingInfo.landingAmount = 0;
-        landingInfo.landingRewardAmount = 0;
-        landingInfo.landingLastTime = block.timestamp;
+    // /**
+    //  * 结算，用于将用户借出去的token,还给用户,并同时计算利息以及
+    //  * 奖励的token数据
+    //  */
+    // function settle(uint256 _pid) external nonReentrant {
+    //     require(block.timestamp > lockPeriod, "the time is locked");
+    //     Pool storage pool = pools[_pid];
+    //     LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
+    //     // 先进行利息计算
+    //     uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
+    //     landingInfo.accumulateInterest += landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
+    //     landingInfo.accumulateRewardInterest += landingInfo.landingRewardAmount * timePeriod * lendingRewardInterestRate * 1e36/(365 * 24 * 3600);
 
-        // 先将token 池子中的token返回给客户
-        if(landingAmount > 0){
-            IERC20(pool.stTokenAddress).transfer(msg.sender,landingAmount);
-        }
-        // 再将借出去的奖励token 返回给客户
-        if(landingRewardAmount > 0){
-            ierc20B2.transfer(msg.sender,landingRewardAmount);
-        }
-        // 最后将利息给到客户
-        uint256 totalInterest = landingInfo.accumulateInterest + landingInfo.accumulateRewardInterest;
-        if(totalInterest>0){
-            interestToken.transfer(msg.sender,totalInterest);
-        }
+    //     pool.lendingAmount -=landingInfo.landingAmount;
+    //     pool.lendingRewardAmount -=landingInfo.landingRewardAmount;
 
-        emit Settle(_pid,landingAmount,landingRewardAmount,totalInterest,msg.sender);
+    //     uint256 landingAmount = landingInfo.landingAmount;
+    //     uint256 landingRewardAmount = landingInfo.landingRewardAmount;
 
-    }
+    //     landingInfo.landingAmount = 0;
+    //     landingInfo.landingRewardAmount = 0;
+    //     landingInfo.landingLastTime = block.timestamp;
+
+    //     // 先将token 池子中的token返回给客户
+    //     if(landingAmount > 0){
+    //         IERC20(pool.stTokenAddress).transfer(msg.sender,landingAmount);
+    //     }
+    //     // 再将借出去的奖励token 返回给客户
+    //     if(landingRewardAmount > 0){
+    //         ierc20B2.transfer(msg.sender,landingRewardAmount);
+    //     }
+    //     // 最后将利息给到客户
+    //     uint256 totalInterest = landingInfo.accumulateInterest + landingInfo.accumulateRewardInterest;
+    //     if(totalInterest>0){
+    //         interestToken.transfer(msg.sender,totalInterest);
+    //     }
+
+    //     emit Settle(_pid,landingAmount,landingRewardAmount,totalInterest,msg.sender);
+
+    // }
 
 
 }
