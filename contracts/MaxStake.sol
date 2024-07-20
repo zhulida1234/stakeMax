@@ -79,7 +79,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
         // 最小质押代币数量
         uint256 minDepositAmount;
         // 最小解除质押代币数量
-        uint256 unstakeLockedBlocks;
+        uint256 minUnstakeAmount;
         // 总借出代币数量
         uint256 lendingAmount;
         // 总借入代币数量
@@ -89,6 +89,8 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
         // 总借入奖励数量
         uint256 borrowingRewardAmount;
     }
+    // 是否已经在流动性池子中了
+    mapping(address=>bool) isAddedToPool;
 
     struct LandingInfo {
         uint256 landingRewardAmount;
@@ -250,16 +252,23 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     }
 
     // 为合约增加流动性提供者
-    function add(address _tokenAddr,bool _withUpdate,uint256 _poolWeight,uint256 _minDepositAmount,uint256 _unstakeLockedBlocks) external onlyOwner {
+    function add(address _tokenAddr,bool _withUpdate,uint256 _poolWeight,uint256 _minDepositAmount,uint256 _minUnstakeAmount) external onlyOwner {
+        require(_tokenAddr != address(0),"Invalid token address");
+        require(_poolWeight > 0,"Pool weight must be greater than zero");
+        require(_minDepositAmount > 0,"Minimum deposit amount must be greater than zero");
+        require(_minUnstakeAmount > 0,"Minimum unstake amount must be greater than zero");
+        require(!isAddedToPool[_tokenAddr],"Token can only add once");
         if(_withUpdate){
             //更新所有的流动性池子
             massUpdatePools();
         }
         uint256 _lastRewardBlock = block.timestamp > startTimeStamp ? block.timestamp : startTimeStamp;
         // 往流动性池子中增加一个流动性pool
-        pools.push(Pool({stTokenAddress:_tokenAddr,poolWeight:_poolWeight,lastRewardBlock:_lastRewardBlock,accB2PerST:0,stTokenAmount:0,minDepositAmount:_minDepositAmount,unstakeLockedBlocks:_unstakeLockedBlocks,lendingAmount:0,borrowingAmount:0,lendingRewardAmount:0,borrowingRewardAmount:0}));
+        pools.push(Pool({stTokenAddress:_tokenAddr,poolWeight:_poolWeight,lastRewardBlock:_lastRewardBlock,accB2PerST:0,stTokenAmount:0,minDepositAmount:_minDepositAmount,minUnstakeAmount:_minUnstakeAmount,lendingAmount:0,borrowingAmount:0,lendingRewardAmount:0,borrowingRewardAmount:0}));
         // 总的分配点数增加
         totalAllocPoint += _poolWeight;
+        //同一种类型的代币只允许添加一次
+        isAddedToPool[_tokenAddr] = true;
 
     }
 
@@ -271,10 +280,6 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
         totalAllocPoint = totalAllocPoint-pools[_pid].poolWeight+_poolWeight;
         pools[_pid].poolWeight = _poolWeight;
     
-    }
-
-    function setEndTimeStamp(uint256 _endTimeStamp) external onlyOwner{
-        endTimeStamp = _endTimeStamp;
     }
 
     // setting interest

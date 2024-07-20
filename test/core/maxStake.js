@@ -25,7 +25,7 @@ describe("MaxStake", function () {
         await cupToken.waitForDeployment();
 
         // Get the ContractFactory and Signers here.
-        MaxStake = await ethers.getContractFactory("MaxStake");
+        MaxStake = await ethers.getContractFactory("TestMaxStake");
         [owner, addr1] = await ethers.getSigners();
         // console("owner,addr1",owner,addr1);
         // Deploy the contract.
@@ -80,7 +80,6 @@ describe("MaxStake", function () {
 
         // 确认 owner 的初始余额
         const ownerBalanceAfter = await rewardToken.balanceOf(owner.address);
-        console.log("ownerBalanceAfter set:", ownerBalanceAfter.toString());
         
         // 验证 totalRewards 是否正确更新
         expect(await maxStake.totalRewards()).to.equal(initialTotalRewards + amount);
@@ -115,6 +114,258 @@ describe("MaxStake", function () {
 
         // 作为合约所有者调用 fund 方法应该失败
         await expect(maxStake.connect(owner).fund(amount)).to.be.revertedWith("Time is too late");
+    });
+
+    it("Should revert if token address is invalid", async function () {
+        await expect(
+            maxStake.add(
+                "0x0000000000000000000000000000000000000000", // Invalid address
+                false,
+                1000,
+                ethers.parseEther("1"),
+                ethers.parseEther("1")
+            )
+        ).to.be.revertedWith("Invalid token address");
+    });
+
+    it("Should not allow non-owner to add", async function () {
+        // 作为非合约所有者调用 add 方法应该失败
+        await expect(
+            maxStake.connect(addr1).add(
+                cupToken.target,
+                false,
+                1, // Zero pool weight
+                ethers.parseEther("1"),
+                ethers.parseEther("1")
+            )
+        ).to.be.revertedWith("Invalid Operator");
+    });
+
+    it("Should revert if pool weight is zero", async function () {
+        await expect(
+            maxStake.add(
+                cupToken.target,
+                false,
+                0, // Zero pool weight
+                ethers.parseEther("1"),
+                ethers.parseEther("1")
+            )
+        ).to.be.revertedWith("Pool weight must be greater than zero");
+    });
+
+    it("Should revert if minimum deposit amount is zero", async function () {
+        await expect(
+            maxStake.add(
+                cupToken.target,
+                false,
+                1000,
+                0, // Zero minimum deposit amount
+                ethers.parseEther("1")
+            )
+        ).to.be.revertedWith("Minimum deposit amount must be greater than zero");
+    });
+
+    it("Should revert if minimum unstake amount is zero", async function () {
+        await expect(
+            maxStake.add(
+                cupToken.target,
+                false,
+                1000,
+                ethers.parseEther("1"),
+                0 // Zero minimum unstake amount
+            )
+        ).to.be.revertedWith("Minimum unstake amount must be greater than zero");
+    });
+
+    it("Should add a pool correctly if all parameters are valid", async function () {
+        await maxStake.add(
+            cupToken.target,
+            false,
+            1000,
+            ethers.parseEther("1"),
+            ethers.parseEther("1")
+        );
+
+        const pool = await maxStake.pools(0);
+        expect(pool.stTokenAddress).to.equal(cupToken.target);
+        expect(pool.poolWeight).to.equal(1000);
+        expect(pool.minDepositAmount).to.equal(ethers.parseEther("1"));
+        expect(pool.minUnstakeAmount).to.equal(ethers.parseEther("1"));
+    });
+
+    it("Should add a token to the pool only once time", async function () {
+        await maxStake.add(
+            cupToken.target,
+            false,
+            1000,
+            ethers.parseEther("1"),
+            ethers.parseEther("1")
+        );
+
+        await expect(
+            maxStake.add(
+                cupToken.target,
+                false,
+                1000,
+                ethers.parseEther("1"),
+                ethers.parseEther("1") // Zero minimum unstake amount
+            )
+        ).to.be.revertedWith("Token can only add once");
+
+    });
+
+    it("Should update the pool correctly", async function () {
+        await maxStake.add(
+            cupToken.target,
+            false,
+            1000,
+            ethers.parseEther("1"),
+            ethers.parseEther("1")
+        );
+
+        const poolBefore = await maxStake.pools(0);
+        console.log("Updated before pool info:", poolBefore);
+
+        const poolIndex = 0; // Use appropriate index based on your pools setup
+
+        // Call testUpdatePool to trigger updatePool internally
+        await maxStake.testUpdatePool(poolIndex);
+
+        // Fetch the updated pool info
+        const poolAfter = await maxStake.pools(poolIndex);
+
+        // Validate the updated values
+        console.log("Updated after pool info:", poolAfter);
+        
+    });
+
+    it("Should not allow non-owner to set Weight", async function () {
+        await maxStake.add(
+            cupToken.target,
+            false,
+            1000,
+            ethers.parseEther("1"),
+            ethers.parseEther("1")
+        );
+
+        // 作为非合约所有者调用 set 方法应该失败
+        await expect(
+            maxStake.connect(addr1).set(
+                0,
+                1,
+                false // Zero pool weight
+            )
+        ).to.be.revertedWith("Invalid Operator");
+    });
+
+    if("Should set the pool Weight result correctly", async function() {
+        const beforeWeight = 1000;
+        await maxStake.add(
+            cupToken.target,
+            false,
+            beforeWeight,
+            ethers.parseEther("1"),
+            ethers.parseEther("1")
+        );
+        expect(maxStake.totalAllocPoint).to.equal(beforeWeight);
+
+        await maxStake.set(0,500,false);
+        const poolSetAfter = await maxStake.pools(0);
+        expect(poolSetAfter.poolWeight).to.equal(500);
+        expect(maxStake.totalAllocPoint).to.equal(500);
+    });
+
+    //-------------------- deposit func test -----------------------------
+    it("Should revert if end time has passed", async function () {
+
+        await maxStake.setEndTimeStamp(Math.floor(Date.now() / 1000) - 1);
+
+        await expect(
+            maxStake.deposit(0, ethers.parseEther("10"))
+        ).to.be.revertedWith("time is over");
+    });
+
+    it("Should revert if deposit amount is less than minimum deposit amount", async function () {
+        await maxStake.add(
+            cupToken.target,
+            false,
+            1000,
+            ethers.parseEther("1"),
+            ethers.parseEther("1")
+        );
+
+        await expect(
+            maxStake.deposit(0, ethers.parseEther("0.5"))
+        ).to.be.revertedWith("amount less than limit");
+    });
+
+    it("Should deposit and update user and pool state correctly", async function () {
+        await maxStake.add(
+            cupToken.target,
+            false,
+            1000,
+            ethers.parseEther("1"),
+            ethers.parseEther("1")
+        );
+
+        const amount = ethers.parseEther("10");
+        await cupToken.mint(owner.address, amount);
+        await cupToken.approve(maxStake.target, amount);
+
+        const initialBalance = await cupToken.balanceOf(owner.address);
+
+        // Perform the deposit
+        await maxStake.deposit(0, amount);
+
+        const userInfo = await maxStake.getUserInfo(0, owner.address);
+        expect(userInfo.stAmount).to.equal(amount);
+
+        const pool = await maxStake.pools(0);
+        expect(pool.stTokenAmount).to.equal(amount);
+
+        const finalBalance = await cupToken.balanceOf(owner.address);
+        expect(finalBalance).to.equal(initialBalance-(amount));
+    });
+
+    it("Should distribute rewards correctly on subsequent deposits", async function () {
+        await maxStake.add(
+            cupToken.target,
+            false,
+            1000,
+            ethers.parseEther("1"),
+            ethers.parseEther("1")
+        );
+
+        const rewardAmount = BigInt(10**37);
+        
+        await rewardToken.mint(owner.address,rewardAmount);
+
+        // 授权合约从所有者账户中转移 RewardToken
+        await rewardToken.approve(maxStake.target, rewardAmount);
+
+        await maxStake.fund(rewardAmount);
+
+        const amount = ethers.parseEther("10");
+        await cupToken.mint(owner.address, amount*BigInt(2));
+        await cupToken.approve(maxStake.target, amount*BigInt(2));
+
+        // Initial deposit
+        await maxStake.deposit(0, amount);
+
+        // Increase time to accumulate rewards
+        await ethers.provider.send("evm_increaseTime", [1000]);
+        await ethers.provider.send("evm_mine");
+
+        const balance = await cupToken.balanceOf(owner.address);
+        console.log("amount,cup balance",amount,balance);
+        // Second deposit
+        await maxStake.deposit(0, amount);
+
+        const userInfo = await maxStake.getUserInfo(0, owner.address);
+        expect(userInfo.stAmount).to.equal(amount*BigInt(2));
+
+        const reward = await rewardToken.balanceOf(owner.address);
+        expect(reward).to.be.gt(0); // Should be greater than zero as rewards should have been accumulated
     });
 
 });
