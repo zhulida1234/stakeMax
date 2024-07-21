@@ -368,4 +368,119 @@ describe("MaxStake", function () {
         expect(reward).to.be.gt(0); // Should be greater than zero as rewards should have been accumulated
     });
 
+    //------------------------ test withdraw func ---------------------------------
+    it("Should allow user to withdraw", async function () {
+        await maxStake.add(cupToken.target, false, 1000, ethers.parseEther("1"), ethers.parseEther("1"));
+        
+        const amount = ethers.parseEther("10");
+        await cupToken.mint(owner.address, amount);
+        await cupToken.approve(maxStake.target, amount);
+        await maxStake.connect(owner).deposit(0, amount);
+
+        const rewardAmount = BigInt(10**37);
+        
+        await rewardToken.mint(owner.address,rewardAmount);
+
+        // 授权合约从所有者账户中转移 RewardToken
+        await rewardToken.approve(maxStake.target, rewardAmount);
+
+        await maxStake.fund(rewardAmount);
+        //--------------------以上是准备数据----------------------
+
+        const pid = 0;
+        const withdrawAmount = ethers.parseEther("5");
+        
+        const userInfo = await maxStake.getUserInfo(pid, owner.address);
+        const initialStakedAmount = userInfo.stAmount;
+        const initialReward = await maxStake.testPending(pid, owner.address);
+        console.info("initialStakedAmount:,initialReward:",initialStakedAmount,initialReward);
+
+        await maxStake.withdraw(pid, withdrawAmount);
+
+        const userInfoAfter = await maxStake.getUserInfo(pid, owner.address);
+        const finalStakedAmount = userInfoAfter.stAmount;
+        const finalReward = await rewardToken.balanceOf(owner.address);
+        const poolStTokenAmount = await maxStake.poolStTokenAmount(pid);
+
+        expect(finalStakedAmount).to.equal(initialStakedAmount-(withdrawAmount));
+        expect(poolStTokenAmount).to.equal(initialStakedAmount-(withdrawAmount));
+
+        const rewardAfterWithdrawal = await rewardToken.balanceOf(owner.address);
+        expect(rewardAfterWithdrawal).to.be.greaterThan(initialReward);
+    });
+
+    it("Should revert if withdraw amount is invalid", async function () {
+        await expect(
+            maxStake.connect(owner).withdraw(0, 0)
+        ).to.be.revertedWith("Invalid Amount");
+    });
+
+    it("Should revert if withdraw amount exceeds staked amount", async function () {
+        await maxStake.add(cupToken.target, false, 1000, ethers.parseEther("1"), ethers.parseEther("1"));
+        
+        const amount = ethers.parseEther("10");
+        await cupToken.mint(owner.address, amount);
+        await cupToken.approve(maxStake.target, amount);
+        await maxStake.connect(owner).deposit(0, amount);
+
+        const rewardAmount = BigInt(10**37);
+        
+        await rewardToken.mint(owner.address,rewardAmount);
+
+        // 授权合约从所有者账户中转移 RewardToken
+        await rewardToken.approve(maxStake.target, rewardAmount);
+
+        await maxStake.fund(rewardAmount);
+
+
+        const pid = 0;
+        const withdrawAmount = ethers.parseEther("20"); // Exceeding staked amount
+
+        await expect(
+            maxStake.connect(owner).withdraw(pid, withdrawAmount)
+        ).to.be.revertedWith("the balance less than amount");
+    });
+
+
+    it("Should allow user to claim rewards", async function () {
+        await maxStake.add(cupToken.target, false, 1000, ethers.parseEther("1"), ethers.parseEther("1"));
+        
+        const amount = ethers.parseEther("10");
+        await cupToken.mint(owner.address, amount);
+        await cupToken.approve(maxStake.target, amount);
+        await maxStake.deposit(0, amount);
+
+        await rewardToken.mint(maxStake.target, ethers.parseEther("100")); // Mint reward tokens to contract
+
+        await ethers.provider.send("evm_increaseTime", [1000]);
+        await ethers.provider.send("evm_mine");
+
+        const pid = 0;
+
+        const initialRewardBalance = await rewardToken.balanceOf(owner.address);
+        const pendingReward = await maxStake.testPending(pid, owner.address);
+
+        await expect(maxStake.connect(owner).reward(pid))
+            .to.emit(maxStake, 'Reward')
+            .withArgs(pid);
+
+        const finalRewardBalance = await rewardToken.balanceOf(owner.address);
+        console.log("finalRewardBalance,initialRewardBalance,pendingReward",finalRewardBalance,initialRewardBalance,pendingReward);
+        
+        expect(finalRewardBalance).to.greaterThanOrEqual(initialRewardBalance+(pendingReward));
+
+        const userInfo = await maxStake.getUserInfo(pid, owner.address);
+        expect(userInfo.pendingB2).to.equal(0);
+        expect(userInfo.finishedB2).to.greaterThanOrEqual(pendingReward);
+    });
+
+    it("Should revert if claim is paused", async function () {
+        await maxStake.pauseClaim();
+
+        await expect(
+            maxStake.reward(0)
+        ).to.be.revertedWith("claim is Paused");
+    });
+
+
 });

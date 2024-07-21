@@ -18,4 +18,12 @@ contract TestMaxStake is MaxStake {
         return userInfo[_pid][_addr];
     }
 
+    function testPending(uint256 _pid,address _user) external view returns (uint256 ){
+        return pending(_pid,_user);
+    }
+
+    function poolStTokenAmount(uint256 _pid) external view returns (uint256) {
+        return pools[_pid].stTokenAmount;
+    }
+
 }
