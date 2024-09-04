@@ -11,7 +11,7 @@ describe("MaxStake", function () {
     let addr1;
 
     beforeEach(async function () {
-
+        console.info("init info");
         const RewardToken = await ethers.getContractFactory("RewardToken");
         rewardToken = await RewardToken.deploy();
         await rewardToken.waitForDeployment();
@@ -38,7 +38,7 @@ describe("MaxStake", function () {
 
     it("Should not allow non-admin to pause withdraw ", async function () {
         await expect(maxStake.connect(addr1).pauseWithdraw()).to.be.revertedWith("Invalid Operator");
-
+        console.info("Should not allow non-admin to pause withdraw");
         await maxStake.connect(owner).pauseWithdraw();
         expect(await maxStake.withdrawPaused()).to.equal(true);
     });
