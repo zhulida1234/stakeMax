@@ -438,29 +438,29 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     }
 
     // the use can depositLending the token to this contract. to earn the interest
-    // 
-    // function depositLend(uint256 _pid,uint256 _amount) external nonReentrant validateLend(_amount){
-    //     Pool storage pool = pools[_pid];
+    //
+     function depositLend(uint256 _pid,uint256 _amount) external nonReentrant validateLend(_amount){
+         Pool storage pool = pools[_pid];
 
-    //     LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
-    //     // 如果之前已经有出借的记录,则先计算利息
-    //     if(landingInfo.landingAmount > 0){
-    //         uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
-    //         landingInfo.accumulateInterest +=landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
-    //     }
+         LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
+         // 如果之前已经有出借的记录,则先计算利息
+         if(landingInfo.landingAmount > 0){
+             uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
+             landingInfo.accumulateInterest +=landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
+         }
 
-    //     landingInfo.landingAmount += _amount;
-    //     landingInfo.landingLastTime = block.timestamp;
+         landingInfo.landingAmount += _amount;
+         landingInfo.landingLastTime = block.timestamp;
 
-    //     pool.lendingAmount += _amount; 
+         pool.lendingAmount += _amount;
 
-    //     IERC20(pool.stTokenAddress).transferFrom(msg.sender,address(this),_amount);
-    //     // 发送事件
-    //     emit DepositLend(_pid,_amount);
-    // }
+         IERC20(pool.stTokenAddress).transferFrom(msg.sender,address(this),_amount);
+         // 发送事件
+         emit DepositLend(_pid,_amount);
+     }
 
     /**
-     * 
+     *
      * 执行逻辑,因为是从质押池子中取出来的token，借给合约。而本身，对应的token其实就是在合约上，
      * 因此，先计算质押奖励，发送给用户
      * 其次, 更新个人用户 和 池子中的质押代币数量
@@ -468,34 +468,34 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
      * 更新借款信息的借款金额，操作时间
      * 考虑到，token的最终归属没有变,transferFrom这个方法不需要调用
      */
-    // function withdrawLend(uint256 _pid,uint256 _amount) external nonReentrant withdrawUnPaused validateLend(_amount){
-    //     User storage user = userInfo[_pid][msg.sender];
-    //     require(user.stAmount >= _amount, "the balance less than amount");
+     function withdrawLend(uint256 _pid,uint256 _amount) external nonReentrant withdrawUnPaused validateLend(_amount){
+         User storage user = userInfo[_pid][msg.sender];
+         require(user.stAmount >= _amount, "the balance less than amount");
 
-    //     Pool storage pool = pools[_pid];
-    //     updatePool(_pid);
-    //     // 先取出奖励池子里面的奖励，给到质押者
-    //     uint256 reward = pending(_pid, msg.sender);
-    //     user.finishedB2 += reward;
-    //     user.pendingB2 = 0;
-    //     ierc20B2.transfer(msg.sender,reward);
-    //     // 然后将 取出来的金额借给合约，开始计算利息
-    //     user.stAmount = user.stAmount - _amount;
-    //     pool.stTokenAmount -= _amount; 
+         Pool storage pool = pools[_pid];
+         updatePool(_pid);
+         // 先取出奖励池子里面的奖励，给到质押者
+         uint256 reward = pending(_pid, msg.sender);
+         user.finishedB2 += reward;
+         user.pendingB2 = 0;
+         ierc20B2.transfer(msg.sender,reward);
+         // 然后将 取出来的金额借给合约，开始计算利息
+         user.stAmount = user.stAmount - _amount;
+         pool.stTokenAmount -= _amount;
 
-    //     LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
-    //     if(landingInfo.landingAmount > 0){
-    //         uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
-    //         landingInfo.accumulateInterest +=landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
-    //     }
+         LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
+         if(landingInfo.landingAmount > 0){
+             uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
+             landingInfo.accumulateInterest +=landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
+         }
 
-    //     landingInfo.landingAmount += _amount;
-    //     landingInfo.landingLastTime = block.timestamp;
+         landingInfo.landingAmount += _amount;
+         landingInfo.landingLastTime = block.timestamp;
 
-    //     pool.lendingAmount += _amount; 
-    //     // 发送事件
-    //     emit WithdrawLend(_pid,_amount);
-    // }
+         pool.lendingAmount += _amount;
+         // 发送事件
+         emit WithdrawLend(_pid,_amount);
+     }
 
     /**
      * 借出奖励,获取奖励的利息
@@ -541,7 +541,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     //     borrowingInfo.borrowingAmount += _amount;
     //     borrowingInfo.borrowLastTime = block.timestamp;
 
-    //     pool.borrowingAmount += _amount; 
+    //     pool.borrowingAmount += _amount;
 
     //     IERC20(pool.stTokenAddress).transfer(msg.sender,_amount);
     //     // 发送事件
@@ -560,7 +560,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     //     Pool storage pool = pools[_pid];
     //     BorrowingInfo storage borrowingInfo = borrowingValues[pool.stTokenAddress][msg.sender];
     //     require(canBorrowAmt-borrowingInfo.borrowingAmount > _amount,"the borrow amount overflow than limit");
-        
+
     //     updatePool(_pid);
     //     // 先取出奖励池子里面的奖励，给到质押者
     //     uint256 reward = pending(_pid, msg.sender);
@@ -569,7 +569,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     //     ierc20B2.transfer(msg.sender,reward);
 
     //     user.stAmount = user.stAmount - _amount;
-    //     pool.stTokenAmount -= _amount; 
+    //     pool.stTokenAmount -= _amount;
     //     // 然后将 取出来的金额借给合约，开始计算利息
     //     if(borrowingInfo.borrowingAmount > 0){
     //         uint256 timePeriod = block.timestamp - borrowingInfo.borrowLastTime;
@@ -580,7 +580,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     //     borrowingInfo.borrowLastTime = block.timestamp;
 
     //     pool.borrowingAmount += reallyBorrowAmt;
-        
+
     //     uint256 reallySendAmt = _amount + reallyBorrowAmt;
     //     IERC20(pool.stTokenAddress).transfer(msg.sender,reallySendAmt);
 
@@ -588,7 +588,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     // }
 
     /**
-     * 
+     *
      */
     // function claimBorrow(uint256 _pid) external nonReentrant claimUnPaused {
     //     require(address(interestToken) != address(0),"the interestToken may not init");
@@ -605,7 +605,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     //         borrowingInfo.accumulateInterest +=borrowingInfo.borrowingAmount * timePeriod * borrowingInterestRate * 1e36/(365 * 24 * 3600);
     //     }
 
-        
+
     //     user.finishedB2 += reward;
     //     user.pendingB2 = 0;
 
@@ -615,7 +615,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     //     borrowingInfo.collateralReward += reward;
     //     borrowingInfo.borrowLastTime = block.timestamp;
 
-        
+
     //     pool.borrowingRewardAmount += reward;
 
     //     IERC20(pool.stTokenAddress).transfer(msg.sender,canborrowAmt);
