@@ -6,6 +6,7 @@ import {RewardToken} from "../token/RewardToken.sol";
 import {MaxStake} from "../MaxStake.sol";
 import {CupToken} from "../token/CupToken.sol";
 import {SalesFactory} from "../factory/SalesFactory.sol";
+import {Admin} from "../Admin.sol";
 
 contract MTest is Test {
 
@@ -31,13 +32,17 @@ contract MTest is Test {
         vm.selectFork(mainnetFork);
         //deployed mint token
         address account = createAccount("tom");
-        vm.startPrank(account1);
+        address jackAccount = createAccount("jack");
+//        console.log("msg.sender:", msg.sender);
+        vm.startPrank(account);
+
         //部署RewardToken并mint
         RewardToken reward = new RewardToken();
         reward.mint(account, 10e37);
         //初始化MaxStake
         MaxStake maxstake = new MaxStake();
         maxstake.initialize(address(reward), 10, block.timestamp, block.timestamp + ONE_DAY);
+
         address maxstakeAddress = address(maxstake);
         console.log("maxstake:", maxstakeAddress);
         //授权
@@ -45,14 +50,39 @@ contract MTest is Test {
         //注入奖励
         maxstake.fund(10e37);
         //部署Cup
-        CupToken reward = new CupToken();
-        reward.mint(account, 10e37);
-
+        CupToken cupToken = new CupToken();
+        cupToken.mint(account, 10e37);
         //部署 SalesFactory
         SalesFactory saleFactory = new SalesFactory(maxstakeAddress);
 
-        saleFactory.deploySale();
 
+        address[] memory _admins = new address[](1);
+        _admins[0] = account;
+        //初始化管理员
+        saleFactory.init(_admins);
+        //部署销售合约
+        saleFactory.deploySale(account);
+
+        address saleAddress = saleFactory.allSales(0);
+
+        console.log("saleAddress:", saleAddress);
+
+        /********************************/
+        //添加流动性池子
+        maxstake.add(
+            address(cupToken),
+            false, 1, 1e18, 1e18
+        );
+        //给杰克mint 1e18wei的cupToken
+        cupToken.mint(jackAccount, 1e18);
+        vm.stopPrank();
+        //切换到杰克
+        vm.startPrank(jackAccount);
+        cupToken.approve(maxstakeAddress, 1e18);
+        //质押
+        maxstake.deposit(0, 1e18);
+        //提取收益
+        maxstake.reward(0);
         vm.stopPrank();
     }
 

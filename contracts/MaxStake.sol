@@ -12,7 +12,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,AccessControlUpgradeable,PausableUpgradeable{
+contract MaxStake is IMaxStake, ReentrancyGuard, Initializable, UUPSUpgradeable, AccessControlUpgradeable, PausableUpgradeable {
     //reward token
     //奖励代币
     IERC20 public ierc20B2;
@@ -29,7 +29,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
 
     // 每秒奖励的数量
     uint public rewardPerSecond;
-     // 总分配的点数
+    // 总分配的点数
     uint256 public totalAllocPoint;
     // 总的奖励金额
     uint256 public totalRewards;
@@ -90,7 +90,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
         uint256 borrowingRewardAmount;
     }
     // 是否已经在流动性池子中了
-    mapping(address=>bool) isAddedToPool;
+    mapping(address => bool) isAddedToPool;
 
     struct LandingInfo {
         uint256 landingRewardAmount;
@@ -134,9 +134,9 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
         address [] salesRegistered;
     }
     // 质押事件
-    event Deposit(uint256 _pid,uint256 amount);
+    event Deposit(uint256 _pid, uint256 amount);
     // 解质押事件
-    event Withdraw(uint256 _pid,uint256 amount);
+    event Withdraw(uint256 _pid, uint256 amount);
     // 奖励事件
     event Reward(uint256 _pid);
     // 取款暂停
@@ -150,25 +150,25 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     // 更新对应的流动池
     event UpdatePool(uint256 idx, uint256 lastRewardBlock, uint256 reward);
     // 存款借出
-    event DepositLend(uint256 _pid,uint _amount);
+    event DepositLend(uint256 _pid, uint _amount);
     // 提取借出
-    event WithdrawLend(uint256 _pid,uint _amount);
+    event WithdrawLend(uint256 _pid, uint _amount);
     // 领取奖励借出
     event ClaimLend(uint256 _pid);
     // 存款借入
-    event DepositBorrow(uint256 _pid,uint _amount);
+    event DepositBorrow(uint256 _pid, uint _amount);
     // 提取并借入
-    event WithdrawBorrow(uint256 _pid,uint _amount);
+    event WithdrawBorrow(uint256 _pid, uint _amount);
     // 抵押奖励借入
     event ClaimBorrow(uint256 _pid);
     // 赎回
-    event Redeem(uint256 _pid,uint256 borrowAmt,uint256 collateralReward,uint256 accumulateInterest,address receiver);
+    event Redeem(uint256 _pid, uint256 borrowAmt, uint256 collateralReward, uint256 accumulateInterest, address receiver);
     // 结算
-    event Settle(uint256 _pid,uint256 landingAmount,uint256 landingRewardAmount,uint256 totalInterest,address receiver);
+    event Settle(uint256 _pid, uint256 landingAmount, uint256 landingRewardAmount, uint256 totalInterest, address receiver);
 
-    // 构造函数，初始化奖励代币数量 
-    function initialize(address _b2stAddress, uint256 _rewardPerSecond,uint256 _startTimeStamp,uint256 _endTimeStamp) external initializer {
-        require(_startTimeStamp < _endTimeStamp,"Invalid time");
+    // 构造函数，初始化奖励代币数量
+    function initialize(address _b2stAddress, uint256 _rewardPerSecond, uint256 _startTimeStamp, uint256 _endTimeStamp) external initializer {
+        require(_startTimeStamp < _endTimeStamp, "Invalid time");
         require(_endTimeStamp > block.timestamp, "Invalid end time");
         ierc20B2 = IERC20(_b2stAddress);
         rewardPerSecond = _rewardPerSecond;
@@ -181,7 +181,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
 
     // 校验withdraw没有暂停
     modifier withdrawUnPaused () {
-        require(!withdrawPaused,"withdraw is Paused");
+        require(!withdrawPaused, "withdraw is Paused");
         _;
     }
 
@@ -193,49 +193,49 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
 
     // 校验是否属于所有人
     modifier onlyOwner() {
-        require(_owner == msg.sender,"Invalid Operator");
+        require(_owner == msg.sender, "Invalid Operator");
         _;
     }
 
     // 校验是否可以出借
     modifier validateLend(uint256 _amount) {
-        require(address(interestToken) != address(0),"the interestToken may not init");
+        require(address(interestToken) != address(0), "the interestToken may not init");
         require(_amount > 0, "lending amount can't be zero");
-        require(lendingInterestRate > 0,"the lendingInterestRate may not init");
+        require(lendingInterestRate > 0, "the lendingInterestRate may not init");
         require(_amount >= minLending, "lending Amount must great than minLending");
         _;
     }
 
     // 校验接款参数
     modifier validateBorrow(uint256 _amount) {
-        require(address(interestToken) != address(0),"the interestToken may not init");
+        require(address(interestToken) != address(0), "the interestToken may not init");
         require(_amount > 0, "lending amount can't be zero");
-        require(borrowingInterestRate > 0,"the lendingInterestRate may not init");
+        require(borrowingInterestRate > 0, "the lendingInterestRate may not init");
         _;
     }
 
     // 暂停取款
-    function pauseWithdraw () external onlyOwner withdrawUnPaused {
+    function pauseWithdraw() external onlyOwner withdrawUnPaused {
         withdrawPaused = true;
 
         emit WithdrawPaused();
     }
 
     // 暂停领取奖励
-    function pauseClaim () external onlyOwner claimUnPaused {
+    function pauseClaim() external onlyOwner claimUnPaused {
         claimPaused = true;
 
         emit ClaimPaused();
     }
 
-    function unPauseWithdraw () external onlyOwner {
+    function unPauseWithdraw() external onlyOwner {
         require(withdrawPaused, "withdraw is unPaused");
         withdrawPaused = false;
 
         emit WithdrawUnPaused();
     }
 
-    function unPauseClaim () external onlyOwner {
+    function unPauseClaim() external onlyOwner {
         require(claimPaused, "claim is unPaused");
         claimPaused = false;
 
@@ -246,25 +246,35 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     function fund(uint256 _amount) external onlyOwner {
         require(block.timestamp < endTimeStamp, "Time is too late");
         totalRewards += _amount;
-        endTimeStamp += _amount/rewardPerSecond;
-
+        endTimeStamp += _amount / rewardPerSecond;
         ierc20B2.transferFrom(msg.sender, address(this), _amount);
     }
 
     // 为合约增加流动性提供者
-    function add(address _tokenAddr,bool _withUpdate,uint256 _poolWeight,uint256 _minDepositAmount,uint256 _minUnstakeAmount) external onlyOwner {
-        require(_tokenAddr != address(0),"Invalid token address");
-        require(_poolWeight > 0,"Pool weight must be greater than zero");
-        require(_minDepositAmount > 0,"Minimum deposit amount must be greater than zero");
-        require(_minUnstakeAmount > 0,"Minimum unstake amount must be greater than zero");
-        require(!isAddedToPool[_tokenAddr],"Token can only add once");
-        if(_withUpdate){
+    function add(address _tokenAddr, bool _withUpdate, uint256 _poolWeight, uint256 _minDepositAmount, uint256 _minUnstakeAmount) external onlyOwner {
+        require(_tokenAddr != address(0), "Invalid token address");
+        require(_poolWeight > 0, "Pool weight must be greater than zero");
+        require(_minDepositAmount > 0, "Minimum deposit amount must be greater than zero");
+        require(_minUnstakeAmount > 0, "Minimum unstake amount must be greater than zero");
+        require(!isAddedToPool[_tokenAddr], "Token can only add once");
+        if (_withUpdate) {
             //更新所有的流动性池子
             massUpdatePools();
         }
         uint256 _lastRewardBlock = block.timestamp > startTimeStamp ? block.timestamp : startTimeStamp;
         // 往流动性池子中增加一个流动性pool
-        pools.push(Pool({stTokenAddress:_tokenAddr,poolWeight:_poolWeight,lastRewardBlock:_lastRewardBlock,accB2PerST:0,stTokenAmount:0,minDepositAmount:_minDepositAmount,minUnstakeAmount:_minUnstakeAmount,lendingAmount:0,borrowingAmount:0,lendingRewardAmount:0,borrowingRewardAmount:0}));
+        pools.push(Pool({
+            stTokenAddress: _tokenAddr,
+            poolWeight: _poolWeight,
+            lastRewardBlock: _lastRewardBlock,
+            accB2PerST: 0,
+            stTokenAmount: 0,
+            minDepositAmount: _minDepositAmount,
+            minUnstakeAmount: _minUnstakeAmount,
+            lendingAmount: 0,
+            borrowingAmount: 0,
+            lendingRewardAmount: 0,
+            borrowingRewardAmount: 0}));
         // 总的分配点数增加
         totalAllocPoint += _poolWeight;
         //同一种类型的代币只允许添加一次
@@ -273,21 +283,21 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     }
 
     // 重新设置流动性提供者的分配点数
-    function set(uint256 _pid,uint256 _poolWeight,bool _withUpdate) external onlyOwner {
-        if(_withUpdate){
+    function set(uint256 _pid, uint256 _poolWeight, bool _withUpdate) external onlyOwner {
+        if (_withUpdate) {
             massUpdatePools();
         }
-        totalAllocPoint = totalAllocPoint-pools[_pid].poolWeight+_poolWeight;
+        totalAllocPoint = totalAllocPoint - pools[_pid].poolWeight + _poolWeight;
         pools[_pid].poolWeight = _poolWeight;
-    
+
     }
 
     // setting interest
     // 设置借出利率 和 借入利率
-    function setInterestRate(uint256 _lendingInterestRate,uint256 _borrowingInterestRate,uint256 _lendingRewardInterestRate,uint256 _borrowingRewardInterestRate) external onlyOwner{
-        require(_lendingInterestRate < _borrowingInterestRate,"the borrowingInterest must great than lendingInterest");
-        require(_lendingInterestRate > 0 && _borrowingInterestRate > 0,"the interest must great than 0");
-        require(lendingInterestRate == 0 && borrowingInterestRate ==0, "the interest can be set just once");
+    function setInterestRate(uint256 _lendingInterestRate, uint256 _borrowingInterestRate, uint256 _lendingRewardInterestRate, uint256 _borrowingRewardInterestRate) external onlyOwner {
+        require(_lendingInterestRate < _borrowingInterestRate, "the borrowingInterest must great than lendingInterest");
+        require(_lendingInterestRate > 0 && _borrowingInterestRate > 0, "the interest must great than 0");
+        require(lendingInterestRate == 0 && borrowingInterestRate == 0, "the interest can be set just once");
 
         lendingInterestRate = _lendingInterestRate;
         borrowingInterestRate = _borrowingInterestRate;
@@ -297,11 +307,11 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
 
     // seting interestToken,lockPeriod and initInterest
     // 设置利率token，锁定期间，注入利息
-    function setInterestParams(address _interestToken,uint256 _lockPeriod,uint256 _initInterest,uint256 _minLanding, uint256 _collateralRate,uint256 _collateralRewardRate, uint256 _mincollateral) external onlyOwner{
-        require(_interestToken!=address(0),"invalid Token address");
-        require(address(interestToken)==address(0),"the interestToken have alread seted");
-        require(_lockPeriod>0,"lock period must great than 0");
-        require(_initInterest>0,"initInterest must great than 0");
+    function setInterestParams(address _interestToken, uint256 _lockPeriod, uint256 _initInterest, uint256 _minLanding, uint256 _collateralRate, uint256 _collateralRewardRate, uint256 _mincollateral) external onlyOwner {
+        require(_interestToken != address(0), "invalid Token address");
+        require(address(interestToken) == address(0), "the interestToken have alread seted");
+        require(_lockPeriod > 0, "lock period must great than 0");
+        require(_initInterest > 0, "initInterest must great than 0");
 
         interestToken = IERC20(_interestToken);
         lockPeriod = _lockPeriod;
@@ -316,21 +326,20 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
 
     // 更新所有的流动性池子
     function massUpdatePools() internal {
-        for(uint i=0;i<pools.length;++i){
+        for (uint i = 0; i < pools.length; ++i) {
             updatePool(i);
         }
     }
-
 
     // 单个更新流动性池子
     function updatePool(uint256 idx) internal {
         Pool storage pool = pools[idx];
         uint256 lastTime = block.timestamp < endTimeStamp ? block.timestamp : endTimeStamp;
-        if(lastTime <= pool.lastRewardBlock){
+        if (lastTime <= pool.lastRewardBlock) {
             return;
         }
         uint256 totalSupply = pool.stTokenAmount;
-        if(totalSupply == 0){
+        if (totalSupply == 0) {
             pool.lastRewardBlock = lastTime;
             return;
         }
@@ -338,8 +347,8 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
         uint256 effectTime = lastTime - pool.lastRewardBlock;
         uint256 accB2PerST = pool.accB2PerST;
 
-        uint256 reward = rewardPerSecond*(effectTime)*(pool.poolWeight)/(totalAllocPoint);
-        accB2PerST = accB2PerST+(reward*(1e36)/(totalSupply));
+        uint256 reward = rewardPerSecond * (effectTime) * (pool.poolWeight) / (totalAllocPoint);
+        accB2PerST = accB2PerST + (reward * (1e36) / (totalSupply));
 
         pool.accB2PerST = accB2PerST;
         pool.lastRewardBlock = block.timestamp;
@@ -347,7 +356,7 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     }
 
     // 质押
-    function deposit(uint256 _pid,uint256 amount) external claimUnPaused{
+    function deposit(uint256 _pid, uint256 amount) external claimUnPaused {
         require(block.timestamp < endTimeStamp, "time is over");
         Pool storage pool = pools[_pid];
         require(amount >= pool.minDepositAmount, "amount less than limit");
@@ -355,82 +364,81 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
         User storage user = userInfo[_pid][msg.sender];
 
         updatePool(_pid);
-        if(user.stAmount > 0){
+        if (user.stAmount > 0) {
             // 先取出奖励池子里面的奖励，给到质押者
             uint256 reward = pending(_pid, msg.sender);
             user.finishedB2 += reward;
             user.pendingB2 = 0;
-            ierc20B2.transfer(msg.sender,reward);
-        }else{
-            user.pendingB2 = user.stAmount*(pool.accB2PerST)/(1e36)-user.finishedB2;
+            ierc20B2.transfer(msg.sender, reward);
+        } else {
+            user.pendingB2 = user.stAmount * (pool.accB2PerST) / (1e36) - user.finishedB2;
         }
 
         user.stAmount = user.stAmount + amount;
-        pool.stTokenAmount += amount; 
+        pool.stTokenAmount += amount;
 
-        IERC20(pool.stTokenAddress).transferFrom(msg.sender,address(this),amount);
+        IERC20(pool.stTokenAddress).transferFrom(msg.sender, address(this), amount);
 
-        emit Deposit(_pid,amount);
+        emit Deposit(_pid, amount);
     }
 
     // 解除质押
-    function withdraw(uint256 _pid, uint256 _amount) external withdrawUnPaused{
+    function withdraw(uint256 _pid, uint256 _amount) external withdrawUnPaused {
         User storage user = userInfo[_pid][msg.sender];
         require(_amount > 0, "Invalid Amount");
         require(user.stAmount >= _amount, "the balance less than amount");
         Pool storage pool = pools[_pid];
-        
+
         updatePool(_pid);
         // 先取出奖励池子里面的奖励，给到质押者
         uint256 reward = pending(_pid, msg.sender);
         user.finishedB2 += reward;
         user.pendingB2 = 0;
-        ierc20B2.transfer(msg.sender,reward);
-        
+        ierc20B2.transfer(msg.sender, reward);
+
 
         user.stAmount = user.stAmount - _amount;
-        pool.stTokenAmount -= _amount; 
+        pool.stTokenAmount -= _amount;
 
-        IERC20(pool.stTokenAddress).transfer(msg.sender,_amount);
+        IERC20(pool.stTokenAddress).transfer(msg.sender, _amount);
 
         emit Withdraw(_pid, _amount);
     }
 
     // 获取奖励
-    function reward(uint256 _pid) external claimUnPaused{
+    function reward(uint256 _pid) external claimUnPaused {
         User storage user = userInfo[_pid][msg.sender];
 
         uint256 reward = pending(_pid, msg.sender);
         user.finishedB2 += reward;
         user.pendingB2 = 0;
-        ierc20B2.transfer(msg.sender,reward);
+        ierc20B2.transfer(msg.sender, reward);
 
         emit Reward(_pid);
     }
 
-
     //查看指定用户,在指定池子里面的待领取代币奖励
-    function pending(uint _pid,address _user) internal view returns (uint256){
+    function pending(uint _pid, address _user) internal view returns (uint256){
         User storage user = userInfo[_pid][_user];
         Pool storage pool = pools[_pid];
         uint256 accB2PerST = pool.accB2PerST;
         uint256 totalSupply = pool.stTokenAmount;
-        if(block.timestamp > pool.lastRewardBlock && totalSupply > 0){
+        if (block.timestamp > pool.lastRewardBlock && totalSupply > 0) {
             uint256 lastTime = block.timestamp < endTimeStamp ? block.timestamp : endTimeStamp;
             uint256 compareLastRewardTime = pool.lastRewardBlock < endTimeStamp ? pool.lastRewardBlock : endTimeStamp;
             uint256 effectTime = lastTime - compareLastRewardTime;
-            uint256 reward = rewardPerSecond*effectTime*pool.poolWeight/(totalAllocPoint);
-            accB2PerST = accB2PerST+(reward*(1e36)/(totalSupply));
+            uint256 reward = rewardPerSecond * effectTime * pool.poolWeight / (totalAllocPoint);
+            accB2PerST = accB2PerST + (reward * (1e36) / (totalSupply));
         }
 
-        return user.stAmount*(accB2PerST)/(1e36)-(user.finishedB2);
+        return user.stAmount * (accB2PerST) / (1e36) - (user.finishedB2);
     }
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner{
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
 
     }
 
-    function setTokenUnlockTime(uint256 _pid,address _user,uint256 saleEndTime) external {
+    function setTokenUnlockTime(uint256 _pid, address _user, uint256 saleEndTime) external {
         User storage user = userInfo[_pid][_user];
         require(user.tokensUnlockTime <= block.timestamp);
         user.tokensUnlockTime = saleEndTime;
@@ -439,25 +447,25 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
 
     // the use can depositLending the token to this contract. to earn the interest
     //
-     function depositLend(uint256 _pid,uint256 _amount) external nonReentrant validateLend(_amount){
-         Pool storage pool = pools[_pid];
+    function depositLend(uint256 _pid, uint256 _amount) external nonReentrant validateLend(_amount) {
+        Pool storage pool = pools[_pid];
 
-         LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
-         // 如果之前已经有出借的记录,则先计算利息
-         if(landingInfo.landingAmount > 0){
-             uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
-             landingInfo.accumulateInterest +=landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
-         }
+        LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
+        // 如果之前已经有出借的记录,则先计算利息
+        if (landingInfo.landingAmount > 0) {
+            uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
+            landingInfo.accumulateInterest += landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36 / (365 * 24 * 3600);
+        }
 
-         landingInfo.landingAmount += _amount;
-         landingInfo.landingLastTime = block.timestamp;
+        landingInfo.landingAmount += _amount;
+        landingInfo.landingLastTime = block.timestamp;
 
-         pool.lendingAmount += _amount;
+        pool.lendingAmount += _amount;
 
-         IERC20(pool.stTokenAddress).transferFrom(msg.sender,address(this),_amount);
-         // 发送事件
-         emit DepositLend(_pid,_amount);
-     }
+        IERC20(pool.stTokenAddress).transferFrom(msg.sender, address(this), _amount);
+        // 发送事件
+        emit DepositLend(_pid, _amount);
+    }
 
     /**
      *
@@ -468,34 +476,34 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
      * 更新借款信息的借款金额，操作时间
      * 考虑到，token的最终归属没有变,transferFrom这个方法不需要调用
      */
-     function withdrawLend(uint256 _pid,uint256 _amount) external nonReentrant withdrawUnPaused validateLend(_amount){
-         User storage user = userInfo[_pid][msg.sender];
-         require(user.stAmount >= _amount, "the balance less than amount");
+    function withdrawLend(uint256 _pid, uint256 _amount) external nonReentrant withdrawUnPaused validateLend(_amount) {
+        User storage user = userInfo[_pid][msg.sender];
+        require(user.stAmount >= _amount, "the balance less than amount");
 
-         Pool storage pool = pools[_pid];
-         updatePool(_pid);
-         // 先取出奖励池子里面的奖励，给到质押者
-         uint256 reward = pending(_pid, msg.sender);
-         user.finishedB2 += reward;
-         user.pendingB2 = 0;
-         ierc20B2.transfer(msg.sender,reward);
-         // 然后将 取出来的金额借给合约，开始计算利息
-         user.stAmount = user.stAmount - _amount;
-         pool.stTokenAmount -= _amount;
+        Pool storage pool = pools[_pid];
+        updatePool(_pid);
+        // 先取出奖励池子里面的奖励，给到质押者
+        uint256 reward = pending(_pid, msg.sender);
+        user.finishedB2 += reward;
+        user.pendingB2 = 0;
+        ierc20B2.transfer(msg.sender, reward);
+        // 然后将 取出来的金额借给合约，开始计算利息
+        user.stAmount = user.stAmount - _amount;
+        pool.stTokenAmount -= _amount;
 
-         LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
-         if(landingInfo.landingAmount > 0){
-             uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
-             landingInfo.accumulateInterest +=landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36/(365 * 24 * 3600);
-         }
+        LandingInfo storage landingInfo = landingValues[pool.stTokenAddress][msg.sender];
+        if (landingInfo.landingAmount > 0) {
+            uint256 timePeriod = block.timestamp - landingInfo.landingLastTime;
+            landingInfo.accumulateInterest += landingInfo.landingAmount * timePeriod * lendingInterestRate * 1e36 / (365 * 24 * 3600);
+        }
 
-         landingInfo.landingAmount += _amount;
-         landingInfo.landingLastTime = block.timestamp;
+        landingInfo.landingAmount += _amount;
+        landingInfo.landingLastTime = block.timestamp;
 
-         pool.lendingAmount += _amount;
-         // 发送事件
-         emit WithdrawLend(_pid,_amount);
-     }
+        pool.lendingAmount += _amount;
+        // 发送事件
+        emit WithdrawLend(_pid, _amount);
+    }
 
     /**
      * 借出奖励,获取奖励的利息
@@ -605,7 +613,6 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     //         borrowingInfo.accumulateInterest +=borrowingInfo.borrowingAmount * timePeriod * borrowingInterestRate * 1e36/(365 * 24 * 3600);
     //     }
 
-
     //     user.finishedB2 += reward;
     //     user.pendingB2 = 0;
 
@@ -614,7 +621,6 @@ contract MaxStake is IMaxStake,ReentrancyGuard,Initializable,UUPSUpgradeable,Acc
     //     borrowingInfo.borrowingAmount += canborrowAmt;
     //     borrowingInfo.collateralReward += reward;
     //     borrowingInfo.borrowLastTime = block.timestamp;
-
 
     //     pool.borrowingRewardAmount += reward;
 
