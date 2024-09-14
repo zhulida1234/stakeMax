@@ -66,7 +66,6 @@ contract MTest is Test {
         address saleAddress = saleFactory.allSales(0);
 
         console.log("saleAddress:", saleAddress);
-
         /********************************/
         //添加流动性池子
         maxstake.add(
