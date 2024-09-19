@@ -139,6 +139,11 @@ contract MaxStake is IMaxStake, ReentrancyGuard, Initializable, UUPSUpgradeable,
     // 质押累计K值
     mapping(address => uint256) kValues;
 
+    // Getter函数，用于外部访问mapping
+    function getKValues(address _addr) public view returns (uint256) {
+        return kValues[_addr];
+    }
+
     // 质押事件
     event Deposit(uint256 _pid, uint256 amount);
     // 解质押事件
@@ -366,9 +371,7 @@ contract MaxStake is IMaxStake, ReentrancyGuard, Initializable, UUPSUpgradeable,
         require(block.timestamp < endTimeStamp, "time is over");
         Pool storage pool = pools[_pid];
         require(amount >= pool.minDepositAmount, "amount less than limit");
-
         User storage user = userInfo[_pid][msg.sender];
-
         updatePool(_pid);
         if (user.stAmount > 0) {
             // 先取出奖励池子里面的奖励，给到质押者
@@ -376,8 +379,8 @@ contract MaxStake is IMaxStake, ReentrancyGuard, Initializable, UUPSUpgradeable,
             user.finishedB2 += reward;
             user.pendingB2 = 0;
             ierc20B2.transfer(msg.sender, reward);
-
-            calculateKvalue(user);
+            //计算k值
+            calculateKvalue(reward, user);
         } else {
             user.pendingB2 = user.stAmount * (pool.accB2PerST) / (1e36) - user.finishedB2;
         }
@@ -406,7 +409,7 @@ contract MaxStake is IMaxStake, ReentrancyGuard, Initializable, UUPSUpgradeable,
         user.pendingB2 = 0;
         ierc20B2.transfer(msg.sender, reward);
 
-        calculateKvalue(user);
+        calculateKvalue(reward, user);
 
         user.stAmount = user.stAmount - _amount;
         pool.stTokenAmount -= _amount;
@@ -429,11 +432,12 @@ contract MaxStake is IMaxStake, ReentrancyGuard, Initializable, UUPSUpgradeable,
     }
 
     //计算k值
-    function calculateKvalue(User storage user) external {
+    function calculateKvalue(uint256 reward, User storage user) external {
         //计算k值
         uint256 kValue = reward * (block.timestamp - user.startblock);
         //累加K值
         uint256 value = kValues[msg.sender];
+
         kValues[msg.sender] = value + kValue;
     }
 
