@@ -132,7 +132,13 @@ contract MaxStake is IMaxStake, ReentrancyGuard, Initializable, UUPSUpgradeable,
         uint256 tokensUnlockTime;
         // registered sale users
         address [] salesRegistered;
+        //质押开始区块
+        uint256 startblock;
     }
+
+    // 质押累计K值
+    mapping(address => uint256) kValues;
+
     // 质押事件
     event Deposit(uint256 _pid, uint256 amount);
     // 解质押事件
@@ -370,11 +376,15 @@ contract MaxStake is IMaxStake, ReentrancyGuard, Initializable, UUPSUpgradeable,
             user.finishedB2 += reward;
             user.pendingB2 = 0;
             ierc20B2.transfer(msg.sender, reward);
+
+            calculateKvalue(user);
         } else {
             user.pendingB2 = user.stAmount * (pool.accB2PerST) / (1e36) - user.finishedB2;
         }
+        user.startblock = block.timestamp;
 
         user.stAmount = user.stAmount + amount;
+
         pool.stTokenAmount += amount;
 
         IERC20(pool.stTokenAddress).transferFrom(msg.sender, address(this), amount);
@@ -396,6 +406,7 @@ contract MaxStake is IMaxStake, ReentrancyGuard, Initializable, UUPSUpgradeable,
         user.pendingB2 = 0;
         ierc20B2.transfer(msg.sender, reward);
 
+        calculateKvalue(user);
 
         user.stAmount = user.stAmount - _amount;
         pool.stTokenAmount -= _amount;
@@ -415,6 +426,15 @@ contract MaxStake is IMaxStake, ReentrancyGuard, Initializable, UUPSUpgradeable,
         ierc20B2.transfer(msg.sender, reward);
 
         emit Reward(_pid);
+    }
+
+    //计算k值
+    function calculateKvalue(User storage user) external {
+        //计算k值
+        uint256 kValue = reward * (block.timestamp - user.startblock);
+        //累加K值
+        uint256 value = kValues[msg.sender];
+        kValues[msg.sender] = value + kValue;
     }
 
     //查看指定用户,在指定池子里面的待领取代币奖励

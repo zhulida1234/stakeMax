@@ -16,10 +16,10 @@ contract StakeNft is ERC721, Admin {
     constructor(string memory name_, string memory symbol_) ERC721(name_, symbol_){
     }
     // 铸造函数
-    function mint(address to, uint tokenId) external onlyAdmin {
-        require(tokenId >= 0 && tokenId < MAX_APES, "tokenId out of range");
+    function mint(address to) external onlyAdmin {
         uint256 tokenId = _tokenIdCounter;
         _tokenIdCounter += 1;
+        require(tokenId >= 0 && tokenId < MAX_APES, "tokenId out of range");
         _mint(to, tokenId);
     }
 }
