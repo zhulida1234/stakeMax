@@ -7,8 +7,11 @@ interface IMaxStake {
 
     function withdraw(uint256 _pid, uint256 _amount) external;
 
-    function setTokenUnlockTime(uint256 _pid, address _user, uint256 saleEndTime) external;
+    function setTokenUnlockTime(uint256 _pid, address _user, uint256 saleEndTime);
 
-    function getKValues(address _addr) external view returns (uint256);
+    function getKValues(address _addr) public view returns (uint8, uint256);
 
+    function setKValues(address _addr, uint8 _level, uint256 _kValue);
+
+    function getMaxK() public view returns (uint256);
 }
